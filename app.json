@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "PokerLeague",
+    "slug": "PokerLeague",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  },
+  "name": "PokerLeague"
+}
