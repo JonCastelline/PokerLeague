@@ -1,107 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import Timer from './Timer';
 import { Audio } from 'expo-av';
 
-const Level = ({
-  smallBlind,
-  bigBlind,
-  nextSmallBlind,
-  nextBigBlind,
-  duration,
-  onCompletion,
-  onStartPause,
-  onNextLevel,
-  onPrevLevel,
-}) => {
-  const [timerDuration, setTimerDuration] = useState(duration * 60); // Convert minutes to seconds
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [sound, setSound] = useState(null);
+const Level = forwardRef(
+  (
+    {
+      smallBlind,
+      bigBlind,
+      nextSmallBlind,
+      nextBigBlind,
+      duration,
+      onCompletion,
+      onStartPause,
+      onNextLevel,
+      onPrevLevel,
+    },
+    ref
+  ) => {
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [sound, setSound] = useState(null);
 
-  const handleTimerUpdate = (timeInSeconds) => {
-    if (timeInSeconds === 0) {
+    const timerRef = useRef();
+
+    useImperativeHandle(ref, () => ({
+        resetTimer() {
+            timerRef.current.resetTimer();
+        }
+    }));
+
+    const handleTimerUpdate = (timeInSeconds) => {
+      if (timeInSeconds === 0) {
+        setIsTimerRunning(false);
+      }
+
+      if (timeInSeconds === 300) {
+        playDing();
+      }
+    };
+
+    const startPause = () => {
+      onStartPause();
+      setIsTimerRunning(!isTimerRunning);
+      setSound(null);
+    };
+
+    const nextLevel = () => {
+      onNextLevel();
       setIsTimerRunning(false);
-    }
+      setResetTimer(true);
+      setSound(null);
+      setResetTimer(false);
+    };
 
-    if (timeInSeconds === 300) {
-      playDing();
-    }
-  };
+    const prevLevel = () => {
+      onPrevLevel();
+      setIsTimerRunning(false);
+      setResetTimer(true);
+      setSound(null);
+      setResetTimer(false);
+    };
 
-  const startPause = () => {
-    onStartPause();
-    setIsTimerRunning(!isTimerRunning);
-    setSound(null);
-  };
+    const handleTimerComplete = async () => {
+      onCompletion();
+      await playAlarm();
+    };
 
-  const nextLevel = () => {
-    onNextLevel();
-    setIsTimerRunning(false);
-    setTimerDuration(duration * 60);
-    setSound(null);
-  };
+    const playAlarm = async () => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(require('../assets/alarm.mp3'));
+        setSound(sound);
+        await sound.playAsync();
+      } catch (error) {
+        console.log('Error playing sound', error);
+      }
+    };
 
-  const prevLevel = () => {
-    onPrevLevel();
-    setIsTimerRunning(false);
-    setTimerDuration(duration * 60);
-    setSound(null);
-  };
+    const playDing = async () => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(require('../assets/ding.mp3'));
+        setSound(sound);
+        await sound.playAsync();
+      } catch (error) {
+        console.log('Error playing sound', error);
+      }
+    };
 
-  const handleTimerComplete = async () => {
-    onCompletion();
-    await playAlarm();
-  };
+    useEffect(() => {
+      if (sound) {
+        return () => {
+          sound.unloadAsync();
+        };
+      }
+    }, [sound]);
 
-  const playAlarm = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(require('../assets/alarm.mp3'));
-      setSound(sound);
-      await sound.playAsync();
-    } catch (error) {
-      console.log('Error playing sound', error);
-    }
-  };
-
-  const playDing = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(require('../assets/ding.mp3'));
-      setSound(sound);
-      await sound.playAsync();
-    } catch (error) {
-      console.log('Error playing sound', error);
-    }
-  };
-
-  useEffect(() => {
-    if (sound) {
-      return () => {
-        sound.unloadAsync();
-      };
-    }
-  }, [sound]);
-
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-  };
-
-  return (
-    <View>
-          <Timer duration={timerDuration} onCompletion={handleTimerComplete} onTick={handleTimerUpdate} />
-          <View style={styles.buttonsContainer}>
-            <TouchableOpacity style={styles.button} onPress={prevLevel}>
-              <Text style={styles.buttonText}>Previous</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={startPause}>
-              <Text style={styles.buttonText}>{isTimerRunning ? 'Pause' : 'Start'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={nextLevel}>
-              <Text style={styles.buttonText}>Next</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.blindsContainer}>
+    return (
+      <View>
+        <Timer
+          duration={duration}
+          onCompletion={handleTimerComplete}
+          onUpdate={handleTimerUpdate}
+          reset={timerRef}
+        />
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity style={styles.button} onPress={prevLevel}>
+            <Text style={styles.buttonText}>Previous</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={startPause}>
+            <Text style={styles.buttonText}>{isTimerRunning ? 'Pause' : 'Start'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={nextLevel}>
+            <Text style={styles.buttonText}>Next</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.blindsContainer}>
           <View style={styles.blind}>
             <Text style={styles.blindText}>Small Blind</Text>
             <Text style={styles.blindValue}>{smallBlind}</Text>
@@ -123,7 +135,7 @@ const Level = ({
         </View>
       </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   buttonsContainer: {
