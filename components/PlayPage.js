@@ -4,8 +4,7 @@ import { Audio } from 'expo-av';
 import { CountdownCircleTimer } from 'react-native-countdown-circle-timer';
 
 const PlayPage = () => {
-  const alarmSound = new Audio.Sound();
-  const defaultDuration = 5; // Test duration in seconds
+  const defaultDuration = 30; // Test duration in seconds
   const levels = [
     { smallBlind: 15, bigBlind: 30 },
     { smallBlind: 20, bigBlind: 40 },
@@ -15,120 +14,128 @@ const PlayPage = () => {
   const [duration, setDuration] = useState(defaultDuration);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [isTimerPlaying, setIsTimerPlaying] = useState(false);
+  const [isTimerExpired, setIsTimerExpired] = useState(false);
   const [sound, setSound] = useState(null);
+  const [key, setKey] = useState(0); // Used to force re-render of Timer component
 
-  const playAlarm = async () => {
-        try {
-          const { sound } = await Audio.Sound.createAsync(require('../assets/alarm.mp3'));
-          setSound(sound);
-          await sound.playAsync();
-        } catch (error) {
-          console.log('Error playing sound', error);
-        }
-      };
+  const dingSoundFile = require('../assets/ding.wav');
+  const alarmSoundFile = require('../assets/alarm.mp3');
 
-  const timerRef = useRef(null);
-
-
-  // Play the alarm sound
-  const playAlarmSound = async () => {
-       try {
-         const { sound } = await Audio.Sound.createAsync(require('../assets/alarm.mp3'));
-         setSound(sound);
-         await sound.playAsync();
-       } catch (error) {
-         console.log('Error playing sound', error);
-       }
-     };
-
-  // Stop the alarm sound
-  const stopAlarmSound = async () => {
+  const playSound = async (soundFile) => {
     try {
-      await alarmSound.unloadAsync();
+      stopSound();
+      const playingSound = new Audio.Sound();
+      await playingSound.loadAsync(soundFile);
+      await playingSound.playAsync();
+      setSound(playingSound);
+    } catch (error) {
+      console.log('Error playing sound', error);
+    }
+  };
+
+  const stopSound = async () => {
+    try {
+      if (sound !== null) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      }
     } catch (error) {
       console.log('Error stopping alarm sound:', error);
     }
   };
 
-  // Handle timer expiration
   const handleTimerEnd = () => {
-    playAlarmSound();
+    playSound(alarmSoundFile);
     setIsTimerPlaying(false);
+    setIsTimerExpired(true);
   };
 
-  // Handle previous level button press
   const handlePreviousLevel = () => {
     if (currentLevel > 0) {
       setCurrentLevel(prevLevel => prevLevel - 1);
-      stopAlarmSound();
+      stopSound();
       setIsTimerPlaying(false);
+      setIsTimerExpired(false);
       setDuration(defaultDuration);
+      setKey(prevKey => prevKey + 1); // Force re-render of Timer component
     }
   };
 
-  // Handle next level button press
   const handleNextLevel = () => {
     if (currentLevel < levels.length - 1) {
       setCurrentLevel(prevLevel => prevLevel + 1);
-      stopAlarmSound();
+      stopSound();
       setIsTimerPlaying(false);
+      setIsTimerExpired(false);
       setDuration(defaultDuration);
+      setKey(prevKey => prevKey + 1); // Force re-render of Timer component
     }
   };
 
-  // Handle start/pause button press
   const handleStartPause = () => {
-    if (isTimerPlaying) {
-      setIsTimerPlaying(false);
+    if (isTimerExpired) {
+      handleReset(); // Call handleReset when the timer is expired
     } else {
-      setIsTimerPlaying(true);
+      setIsTimerPlaying(prevState => !prevState); // Toggle the timer play state
     }
   };
 
-  // Handle reset button press
   const handleReset = () => {
-    stopAlarmSound();
+    stopSound();
     setIsTimerPlaying(false);
+    setIsTimerExpired(false);
     setDuration(defaultDuration);
+    setKey(prevKey => prevKey + 1); // Force re-render of Timer component
   };
 
-  // Render the component
+  const renderTime = ({ remainingTime }) => {
+    if (remainingTime === 28) {
+      playSound(dingSoundFile);
+    }
+    return remainingTime; // Return remaining time to display in the timer
+  };
+
+
   return (
-      <View style={styles.container}>
-        <View style={styles.timerContainer}>
-          <CountdownCircleTimer
-            key={duration}
-            isPlaying={isTimerPlaying}
-            duration={duration}
-            colors={['#004777', '#F7B801', '#A30000', '#A30000']}
-            onComplete={handleTimerEnd}
-            strokeWidth={10}
-            trailColor="#ECECEC"
-            strokeLinecap="butt"
-            size={200}
-          >
-            {({ remainingTime }) => (
+    <View style={styles.container}>
+      <View style={styles.timerContainer}>
+        <CountdownCircleTimer
+          key={key}
+          isPlaying={isTimerPlaying}
+          duration={duration}
+          colors={['#004777', '#F7B801', '#A30000', '#A30000']}
+          onComplete={handleTimerEnd}
+          strokeWidth={10}
+          trailColor="#ECECEC"
+          strokeLinecap="butt"
+          size={200}
+        >
+          {({ remainingTime }) => (
+            <>
               <TouchableOpacity
                 onPress={() => {
                   setDuration(remainingTime);
                 }}
                 style={styles.timerButton}
               >
-                <Text style={styles.countdownText}>{remainingTime}</Text>
+                <Text style={styles.countdownText}>{renderTime({ remainingTime })}</Text>
               </TouchableOpacity>
-            )}
-          </CountdownCircleTimer>
-        </View>
+            </>
+          )}
+        </CountdownCircleTimer>
+      </View>
 
-        <View style={styles.contentContainer}>
+      <View style={styles.contentContainer}>
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.button} onPress={handlePreviousLevel}>
               <Text style={styles.buttonText}>Previous</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button} onPress={handleStartPause}>
-              <Text style={[styles.buttonText, styles.startButtonText]}>
-                {isTimerPlaying ? 'Pause' : 'Start'}</Text>
+              <Text style={[styles.buttonText, isTimerExpired ? styles.resetButtonText : styles.startButtonText]}>
+                {isTimerPlaying ? 'Pause' : (isTimerExpired ? 'Reset' : 'Start')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button} onPress={handleNextLevel}>
@@ -230,7 +237,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
 });
-
-
 
 export default PlayPage;
