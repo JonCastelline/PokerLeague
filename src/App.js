@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import LoginPage from '../components/LoginPage';
@@ -8,6 +8,7 @@ import HomePage from '../components/HomePage';
 import PlayPage from '../components/PlayPage';
 import StandingsPage from '../components/StandingsPage';
 import { useNavigation } from '@react-navigation/native';
+LogBox.ignoreLogs(['Remote debugger']);
 
 const Stack = createStackNavigator();
 
