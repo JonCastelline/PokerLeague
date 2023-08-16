@@ -8,8 +8,17 @@ const PlayPage = () => {
   const levels = [
     { smallBlind: 15, bigBlind: 30 },
     { smallBlind: 20, bigBlind: 40 },
-    { smallBlind: 25, bigBlind: 50 }
+    { smallBlind: 25, bigBlind: 50 },
   ];
+
+  const [players, setPlayers] = useState([
+    { id: 1, firstName: "John", lastName: "Doe", kills: 0, place: 0 },
+    { id: 2, firstName: "Jane", lastName: "Smith", kills: 0, place: 0 },
+    { id: 3, firstName: "Mike", lastName: "Johnson", kills: 0, place: 0 },
+    { id: 4, firstName: "Sarah", lastName: "Williams", kills: 0, place: 0 },
+    { id: 5, firstName: "David", lastName: "Brown", kills: 0, place: 0 },
+    { id: 6, firstName: "Emily", lastName: "Jones", kills: 0, place: 0 },
+  ]);
 
   const [duration, setDuration] = useState(defaultDuration);
   const [currentLevel, setCurrentLevel] = useState(0);
@@ -23,9 +32,14 @@ const PlayPage = () => {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [inputTextSize, setInputTextSize] = useState(40);
   const [previousTextSize, setPreviousTextSize] = useState(40);
+  const [playerListBorderColor, setPlayerListBorderColor] = useState('black');
+  const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(null);
+  const [eliminationOrder, setEliminationOrder] = useState([]);
+
 
   const dingSoundFile = require('../assets/ding.wav');
   const alarmSoundFile = require('../assets/alarm.mp3');
+  const playerListTouchable = useState(false);
 
   const playSound = async (soundFile) => {
     try {
@@ -104,14 +118,61 @@ const PlayPage = () => {
   };
 
   const handleInputChange = (text) => {
-    setTimeInput(text);
+    // Remove non-digit characters from the input
+      const digitsOnly = text.replace(/\D/g, '');
+
+      // Format the input as HH:mm:ss
+      let formattedTime = '';
+      switch (digitsOnly.length) {
+           case 0:
+                formattedTime = '';
+                break;
+           case 1:
+                formattedTime = digitsOnly;
+                break;
+           case 2:
+                formattedTime = digitsOnly;
+                break;
+           case 3:
+                formattedTime = digitsOnly.substring(0, 1) + ':' + digitsOnly.substring(1, 3)
+                break;
+           case 4:
+                formattedTime = digitsOnly.substring(0, 2) + ':' + digitsOnly.substring(2, 4);
+                break;
+           case 5:
+                formattedTime = digitsOnly.substring(0, 1) + ':' + digitsOnly.substring(1, 3) + ':' + digitsOnly.substring(3, 5);
+                break;
+           case 6:
+                formattedTime = digitsOnly.substring(0, 2 )+ ':' + digitsOnly.substring(2, 4) + ':' + digitsOnly.substring(4, 6);
+                break;
+           case 7:
+                formattedTime = digitsOnly.substring(0, 2 )+ ':' + digitsOnly.substring(2, 4) + ':' + digitsOnly.substring(4, 6);
+                break;
+      }
+
+      setTimeInput(formattedTime);
   };
 
   const handleInputSubmit = () => {
     setDuration(parseInt(timeInput));
     setIsTimeEditing(false);
-    setDuration(timeInput === '' ? 0 : parseInt(timeInput));
+    let timeInSeconds = timeToSeconds(timeInput);
+    setDuration(timeInSeconds === '' ? 0 : parseInt(timeInSeconds));
     setKey(prevKey => prevKey + 1); // Force re-render of Timer component
+  };
+
+  const timeToSeconds = (formattedTime) => {
+    const timeParts = formattedTime.split(':');
+    switch (timeParts.length) {
+        case 1:
+            return parseInt(timeParts[0]) || 0;
+        case 2:
+            return parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]) || 0;
+        case 3:
+            return parseInt(timeParts[0]) * 3600 + parseInt(timeParts[1]) * 60 + parseInt(timeParts[2]) || 0;
+        default:
+            return 0;
+    }
   };
 
   const handleInputBlur = () => {
@@ -166,6 +227,52 @@ const PlayPage = () => {
     );
   };
 
+  const handlePlayerClick = (index) => {
+    setSelectedPlayerIndex(index);
+  };
+
+
+    const handleEliminateButtonClick = () => {
+      if (selectedPlayerIndex !== null) {
+        setPlayers((prevPlayers) => {
+          const updatedPlayers = [...prevPlayers];
+          const eliminatedPlayer = updatedPlayers.splice(
+            selectedPlayerIndex,
+            1
+          )[0];
+
+          const eliminatedPlayerCount = players.filter(player => player.eliminated).length;
+          eliminatedPlayer.eliminated = true;
+          eliminatedPlayer.place = players.length - eliminatedPlayerCount; // Assign place for eliminated player
+          updatedPlayers.push(eliminatedPlayer);
+          setSelectedPlayerIndex(null);
+
+          updatedPlayers.sort((a, b) => a.place - b.place);
+
+          // Check if there's only one active player left
+          const activePlayers = updatedPlayers.filter(player => !player.eliminated);
+          if (activePlayers.length === 1) {
+            activePlayers[0].place = 1;
+          }
+
+          return updatedPlayers;
+        });
+      }
+    };
+
+
+
+
+    const handleAddKill = () => {
+      if (selectedPlayerIndex !== null) {
+        setPlayers((prevPlayers) => {
+          const updatedPlayers = [...prevPlayers];
+          updatedPlayers[selectedPlayerIndex].kills += 1;
+          setSelectedPlayerIndex(null); // Reset selected player
+          return updatedPlayers;
+        });
+      }
+    };
 
   return (
     <View style={styles.container}>
@@ -175,11 +282,11 @@ const PlayPage = () => {
               key={key}
               isPlaying={isTimerPlaying}
               duration={duration}
-              colors={['#004777', '#F7B801', '#A30000', '#A30000']}
+              colors={['#004777']}
               onComplete={handleTimerEnd}
               strokeWidth={10}
               trailColor="#ECECEC"
-              strokeLinecap="butt"
+              strokeLine-cap="butt"
               size={200}
             >
               {({ remainingTime }) => (
@@ -239,6 +346,41 @@ const PlayPage = () => {
                   </View>
                 </View>
             </View>
+            <View><Text style={styles.playerListHeader}>Players</Text></View>
+            {players.map((player, index) => (
+              <TouchableOpacity
+                key={player.id}
+                style={[
+                  styles.playerContainer,
+                  selectedPlayerIndex === index && styles.selectedPlayerContainer,
+                  player.eliminated && styles.eliminatedPlayerContainer,
+                ]}
+                onPress={player.eliminated ? null : () => handlePlayerClick(index)}
+              >
+                <Text style={styles.playerName}>
+                  {player.firstName} {player.lastName}
+                </Text>
+                <Text style={styles.playerStats}>
+                  Kills: {player.kills} | Place: {player.eliminated ? player.place : player.place === 1 ? '1' :  'Active'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.eliminateButton, { marginRight: 10 }]}
+                  onPress={handleEliminateButtonClick}
+                >
+                  <Text style={styles.eliminateButtonText}>Eliminate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.killButton}
+                  onPress={handleAddKill}
+                >
+                  <Text style={styles.killButtonText}>Add Kill</Text>
+                </TouchableOpacity>
+              </View>
+
+
             </ScrollView>
       </View>
   );
@@ -260,13 +402,13 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     fontSize: 40,
-    color: 'magenta',
+    fontWeight: 'bold',
+    color: '#004777',
   },
   contentContainer: {
     flex: 2,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    //marginTop: 20,
   },
   buttonContainer: {
    flexDirection: 'row',
@@ -310,11 +452,72 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 40,
-    color: 'magenta',
+    color: '#004777',
   },
   scrollContainer: {
       flexGrow: 1,
       justifyContent: 'center',
+  },
+  playerListHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  playerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 5,
+    padding: 5,
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: 'black',
+  },
+  playerName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  playerStats: {
+    fontSize: 12,
+  },
+  eliminateButton: {
+    backgroundColor: 'blue',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+    maxWidth: 100,
+  },
+  eliminateButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  selectedPlayerContainer: {
+    borderColor: 'blue',
+    borderWidth: 2,
+  },
+  eliminatedPlayerContainer: {
+    borderColor: 'light-gray',
+    borderWidth: 1,
+    backgroundColor: '#f5f5f5',
+    opacity: 0.6,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+  },
+  killButton: {
+    backgroundColor: 'blue',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+    maxWidth: 100,
+  },
+  killButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
