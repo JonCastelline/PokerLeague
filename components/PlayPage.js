@@ -468,6 +468,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginVertical: 5,
+    width: 250,
+    alignSelf: 'center',
     padding: 5,
     borderWidth: 1,
     borderRadius: 5,
@@ -505,6 +507,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
   },
   killButton: {
     backgroundColor: 'blue',
