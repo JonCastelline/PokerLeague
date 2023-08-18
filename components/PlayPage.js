@@ -226,7 +226,6 @@ const PlayPage = ({ players, updatePlayers }) => {
   const handlePlayerClick = (index) => {
        if (bountyClaimedBy == null && playerKilledBy == null) {
          setSelectedPlayerIndex(index);
-         console.log(players);
          return;
        }
 
@@ -242,37 +241,43 @@ const PlayPage = ({ players, updatePlayers }) => {
 
     const handleEliminateButtonClick = () => {
       if (selectedPlayerIndex !== null) {
-          const eliminatedPlayer = players.splice(
-            selectedPlayerIndex,
-            1
-          )[0];
+        const updatedPlayers = [...players]; // Spread operator should be used inside the square brackets
+        const eliminatedPlayer = updatedPlayers.splice(
+          selectedPlayerIndex,
+          1
+        )[0];
 
-          const eliminatedPlayerCount = players.filter(player => player.eliminated).length;
-          eliminatedPlayer.eliminated = true;
-          eliminatedPlayer.place = totalPlayed - eliminatedPlayerCount; // Assign place for eliminated player
-          players.push(eliminatedPlayer);
-          setSelectedPlayerIndex(null);
+        const eliminatedPlayerCount = updatedPlayers.filter(player => player.eliminated).length;
+        eliminatedPlayer.eliminated = true;
+        eliminatedPlayer.place = totalPlayed - eliminatedPlayerCount; // Assign place for eliminated player
+        updatedPlayers.push(eliminatedPlayer); // Use updatedPlayers here instead of players
+        setSelectedPlayerIndex(null);
 
-          players.sort((a, b) => a.place - b.place);
+        updatedPlayers.sort((a, b) => a.place - b.place);
 
-          // Check if there's only one active player left
-          const activePlayers = players.filter(player => !player.eliminated);
-          if (activePlayers.length === 1) {
-            activePlayers[0].place = 1;
-            activePlayers[0].eliminated = true;
-            activePlayers[0].kills += 1;
-            return players;
-          }
+        // Check if there's only one active player left
+        const activePlayers = updatedPlayers.filter(player => !player.eliminated && player.playing);
 
-          if (eliminatedPlayer.hasBounty) {
-            setBountyClaimedBy(selectedPlayerIndex);
-          }
+        //console.log('active players name: ' + activePlayers.firstName + ' ' + activePlayers.lastName);
+        if (activePlayers.length === 1) {
+          activePlayers[0].place = 1;
+          activePlayers[0].eliminated = true;
+          activePlayers[0].kills += 1;
+          updatePlayers(updatedPlayers); // Update state with the modified array
+          return updatedPlayers; // Return the modified array
+        }
 
-          setPlayerKilledBy(selectedPlayerIndex);
+        if (eliminatedPlayer.hasBounty) {
+          setBountyClaimedBy(selectedPlayerIndex);
+        }
 
-          return players;
+        setPlayerKilledBy(selectedPlayerIndex);
+
+        updatePlayers(updatedPlayers); // Update state with the modified array
+        return updatedPlayers; // Return the modified array
       }
     };
+
 
     const getOrdinal = (number) => {
       const suffixes = ['th', 'st', 'nd', 'rd'];
