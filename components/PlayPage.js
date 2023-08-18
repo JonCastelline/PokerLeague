@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, TextInput, ScrollView } from 
 import { Audio } from 'expo-av';
 import { CountdownCircleTimer } from 'react-native-countdown-circle-timer';
 
-const PlayPage = ({ players }) => {
+const PlayPage = ({ players, updatePlayers }) => {
   const defaultDuration = 15; // Test duration in seconds
   const levels = [
     { smallBlind: 15, bigBlind: 30 },
@@ -29,7 +29,9 @@ const PlayPage = ({ players }) => {
   const [eliminationOrder, setEliminationOrder] = useState([]);
   const [bountyClaimedBy, setBountyClaimedBy] = useState(null);
   const [playerKilledBy, setPlayerKilledBy] = useState(null);
+  const [initialSetup, setInitialSetup] = useState(true);
 
+  const totalPlayed = players.filter(player => player.playing).length;
 
   const dingSoundFile = require('../assets/ding.wav');
   const alarmSoundFile = require('../assets/alarm.mp3');
@@ -247,7 +249,7 @@ const PlayPage = ({ players }) => {
 
           const eliminatedPlayerCount = players.filter(player => player.eliminated).length;
           eliminatedPlayer.eliminated = true;
-          eliminatedPlayer.place = players.length - eliminatedPlayerCount + 1; // Assign place for eliminated player
+          eliminatedPlayer.place = totalPlayed - eliminatedPlayerCount; // Assign place for eliminated player
           players.push(eliminatedPlayer);
           setSelectedPlayerIndex(null);
 
@@ -286,9 +288,49 @@ const PlayPage = ({ players }) => {
       return `${number}${suffix}`;
     };
 
+    const handleTogglePlaying = (index) => {
+      const updatedPlayers = [...players];
+      updatedPlayers[index].playing = !updatedPlayers[index].playing;
+      updatePlayers(updatedPlayers);
+    };
 
 
-  return (
+
+
+  if (initialSetup) {
+    return (
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Render the list of players for initial setup */}
+          {players.map((player, index) => (
+            <TouchableOpacity
+              key={player.id}
+              style={[
+                styles.playerContainer,
+                !player.playing && styles.eliminatedPlayerContainer,
+              ]}
+              onPress={() => handleTogglePlaying(index)}
+            >
+              <Text style={styles.playerName}>
+                {player.firstName} {player.lastName}
+                {player.hasBounty ? ' ⭐️' : null}
+              </Text>
+              <Text style={styles.playerStats}>
+                {!player.playing ? 'Not Playing' : 'Playing'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            style={styles.eliminateButton}
+            onPress={() => setInitialSetup(false)}
+          >
+            <Text style={styles.eliminateButtonText}>Done</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
+    return (
     <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.timerContainer}>
@@ -364,13 +406,13 @@ const PlayPage = ({ players }) => {
             {playerKilledBy !== null ? (
               <Text style={styles.claimKillText}>Which player claimed the kill?</Text>)
               : null}
-            {players.map((player, index) => (
+            {players.sort((a, b) => (a.playing && !b.playing ? -1 : 1)).map((player, index) => (
               <TouchableOpacity
                 key={player.id}
                 style={[
                   styles.playerContainer,
                   selectedPlayerIndex === index && styles.selectedPlayerContainer,
-                  player.eliminated && styles.eliminatedPlayerContainer,
+                  (!player.playing || player.eliminated) && styles.eliminatedPlayerContainer,
                 ]}
                 onPress={player.eliminated ? null : () => handlePlayerClick(index)}
               >
@@ -379,7 +421,8 @@ const PlayPage = ({ players }) => {
                   {player.hasBounty ? ' ⭐️' : null}
                 </Text>
                 <Text style={styles.playerStats}>
-                  Kills: {player.kills} | Bounties: {player.bounties} {player.eliminated ? ' | Place: ' + getOrdinal(player.place) : player.place === 1 ? '1' : null}
+                  {player.playing ? `Kills: ${player.kills} | Bounties: ${player.bounties}` : 'DNP'}
+                  {player.eliminated ? ` | Place: ${getOrdinal(player.place)}` : player.place === 1 ? '1' : null}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -395,7 +438,7 @@ const PlayPage = ({ players }) => {
 
             </ScrollView>
       </View>
-  );
+    );
 };
 
 const styles = StyleSheet.create({
