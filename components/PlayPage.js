@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, TextInput, ScrollView } from 
 import { Audio } from 'expo-av';
 import { CountdownCircleTimer } from 'react-native-countdown-circle-timer';
 
-const PlayPage = () => {
+const PlayPage = ({ players }) => {
   const defaultDuration = 15; // Test duration in seconds
   const levels = [
     { smallBlind: 15, bigBlind: 30 },
@@ -11,14 +11,6 @@ const PlayPage = () => {
     { smallBlind: 25, bigBlind: 50 },
   ];
 
-  const [players, setPlayers] = useState([
-    { id: 1, firstName: "John", lastName: "Doe", kills: 0, place: 0 },
-    { id: 2, firstName: "Jane", lastName: "Smith", kills: 0, place: 0 },
-    { id: 3, firstName: "Mike", lastName: "Johnson", kills: 0, place: 0 },
-    { id: 4, firstName: "Sarah", lastName: "Williams", kills: 0, place: 0 },
-    { id: 5, firstName: "David", lastName: "Brown", kills: 0, place: 0 },
-    { id: 6, firstName: "Emily", lastName: "Jones", kills: 0, place: 0 },
-  ]);
 
   const [duration, setDuration] = useState(defaultDuration);
   const [currentLevel, setCurrentLevel] = useState(0);
@@ -35,6 +27,8 @@ const PlayPage = () => {
   const [playerListBorderColor, setPlayerListBorderColor] = useState('black');
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(null);
   const [eliminationOrder, setEliminationOrder] = useState([]);
+  const [bountyClaimedBy, setBountyClaimedBy] = useState(null);
+  const [playerKilledBy, setPlayerKilledBy] = useState(null);
 
 
   const dingSoundFile = require('../assets/ding.wav');
@@ -228,51 +222,71 @@ const PlayPage = () => {
   };
 
   const handlePlayerClick = (index) => {
-    setSelectedPlayerIndex(index);
+       if (bountyClaimedBy == null && playerKilledBy == null) {
+         setSelectedPlayerIndex(index);
+         console.log(players);
+         return;
+       }
+
+       if (bountyClaimedBy != null) {
+         players[index].bounties += 1;
+         setBountyClaimedBy(null);
+       }
+
+       players[index].kills += 1;
+       setPlayerKilledBy(null);
   };
 
 
     const handleEliminateButtonClick = () => {
       if (selectedPlayerIndex !== null) {
-        setPlayers((prevPlayers) => {
-          const updatedPlayers = [...prevPlayers];
-          const eliminatedPlayer = updatedPlayers.splice(
+          const eliminatedPlayer = players.splice(
             selectedPlayerIndex,
             1
           )[0];
 
           const eliminatedPlayerCount = players.filter(player => player.eliminated).length;
           eliminatedPlayer.eliminated = true;
-          eliminatedPlayer.place = players.length - eliminatedPlayerCount; // Assign place for eliminated player
-          updatedPlayers.push(eliminatedPlayer);
+          eliminatedPlayer.place = players.length - eliminatedPlayerCount + 1; // Assign place for eliminated player
+          players.push(eliminatedPlayer);
           setSelectedPlayerIndex(null);
 
-          updatedPlayers.sort((a, b) => a.place - b.place);
+          players.sort((a, b) => a.place - b.place);
 
           // Check if there's only one active player left
-          const activePlayers = updatedPlayers.filter(player => !player.eliminated);
+          const activePlayers = players.filter(player => !player.eliminated);
           if (activePlayers.length === 1) {
             activePlayers[0].place = 1;
+            activePlayers[0].eliminated = true;
+            activePlayers[0].kills += 1;
+            return players;
           }
 
-          return updatedPlayers;
-        });
+          if (eliminatedPlayer.hasBounty) {
+            setBountyClaimedBy(selectedPlayerIndex);
+          }
+
+          setPlayerKilledBy(selectedPlayerIndex);
+
+          return players;
       }
     };
 
+    const getOrdinal = (number) => {
+      const suffixes = ['th', 'st', 'nd', 'rd'];
+      const specialCases = [11, 12, 13]; // Numbers that end with 'th'
 
+      const remainder = number % 100;
+      const suffix = suffixes[(remainder - 20) % 10] || suffixes[remainder] || suffixes[0];
 
-
-    const handleAddKill = () => {
-      if (selectedPlayerIndex !== null) {
-        setPlayers((prevPlayers) => {
-          const updatedPlayers = [...prevPlayers];
-          updatedPlayers[selectedPlayerIndex].kills += 1;
-          setSelectedPlayerIndex(null); // Reset selected player
-          return updatedPlayers;
-        });
+      if (specialCases.includes(remainder)) {
+        suffix = 'th';
       }
+
+      return `${number}${suffix}`;
     };
+
+
 
   return (
     <View style={styles.container}>
@@ -347,6 +361,9 @@ const PlayPage = () => {
                 </View>
             </View>
             <View><Text style={styles.playerListHeader}>Players</Text></View>
+            {playerKilledBy !== null ? (
+              <Text style={styles.claimKillText}>Which player claimed the kill?</Text>)
+              : null}
             {players.map((player, index) => (
               <TouchableOpacity
                 key={player.id}
@@ -359,9 +376,10 @@ const PlayPage = () => {
               >
                 <Text style={styles.playerName}>
                   {player.firstName} {player.lastName}
+                  {player.hasBounty ? ' ⭐️' : null}
                 </Text>
                 <Text style={styles.playerStats}>
-                  Kills: {player.kills} | Place: {player.eliminated ? player.place : player.place === 1 ? '1' :  'Active'}
+                  Kills: {player.kills} | Bounties: {player.bounties} {player.eliminated ? ' | Place: ' + getOrdinal(player.place) : player.place === 1 ? '1' : null}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -371,12 +389,6 @@ const PlayPage = () => {
                   onPress={handleEliminateButtonClick}
                 >
                   <Text style={styles.eliminateButtonText}>Eliminate</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.killButton}
-                  onPress={handleAddKill}
-                >
-                  <Text style={styles.killButtonText}>Add Kill</Text>
                 </TouchableOpacity>
               </View>
 
@@ -419,6 +431,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: 'blue',
     paddingHorizontal: 10,
+    borderRadius: 5,
     paddingVertical: 5,
     marginHorizontal: 5,
   },
@@ -468,7 +481,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginVertical: 5,
-    width: 250,
+    width: 300,
     alignSelf: 'center',
     padding: 5,
     borderWidth: 1,
@@ -491,7 +504,7 @@ const styles = StyleSheet.create({
   },
   eliminateButtonText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -509,18 +522,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
   },
-  killButton: {
-    backgroundColor: 'blue',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 5,
-    maxWidth: 100,
-  },
-  killButtonText: {
-    color: 'white',
-    fontSize: 12,
+  claimKillText: {
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#004777',
+    padding: 10,
   },
 });
 
