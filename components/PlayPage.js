@@ -29,7 +29,9 @@ const PlayPage = ({ players, updatePlayers }) => {
   const [eliminationOrder, setEliminationOrder] = useState([]);
   const [bountyClaimedBy, setBountyClaimedBy] = useState(null);
   const [playerKilledBy, setPlayerKilledBy] = useState(null);
-  const [initialSetup, setInitialSetup] = useState(true);
+  const [mode, setMode] = useState('setup');
+
+  const switchToPlayMode = () => setMode('play');
 
   const totalPlayed = players.filter(player => player.playing).length;
 
@@ -299,149 +301,146 @@ const PlayPage = ({ players, updatePlayers }) => {
       updatePlayers(updatedPlayers);
     };
 
-
-
-
-  if (initialSetup) {
     return (
       <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Render the list of players for initial setup */}
-          {players.map((player, index) => (
-            <TouchableOpacity
-              key={player.id}
-              style={[
-                styles.playerContainer,
-                !player.playing && styles.eliminatedPlayerContainer,
-              ]}
-              onPress={() => handleTogglePlaying(index)}
-            >
-              <Text style={styles.playerName}>
-                {player.firstName} {player.lastName}
-                {player.hasBounty ? ' ⭐️' : null}
-              </Text>
-              <Text style={styles.playerStats}>
-                {!player.playing ? 'Not Playing' : 'Playing'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={styles.eliminateButton}
-            onPress={() => setInitialSetup(false)}
-          >
-            <Text style={styles.eliminateButtonText}>Done</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-    );
-  }
-    return (
-    <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.timerContainer}>
-            <CountdownCircleTimer
-              key={key}
-              isPlaying={isTimerPlaying}
-              duration={duration}
-              colors={['#004777']}
-              onComplete={handleTimerEnd}
-              strokeWidth={10}
-              trailColor="#ECECEC"
-              strokeLine-cap="butt"
-              size={200}
-            >
-              {({ remainingTime }) => (
-                <>
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            {mode === 'setup' ? (
+              <>
+                {players.map((player, index) => (
                   <TouchableOpacity
-                    onPress={() => {
-                      setDuration(remainingTime);
-                    }}
-                    style={styles.timerButton}
+                    key={player.id}
+                    style={[
+                      styles.playerContainer,
+                      !player.playing && styles.eliminatedPlayerContainer,
+                    ]}
+                    onPress={() => handleTogglePlaying(index)}
                   >
-                    <Text style={styles.countdownText}>{renderTime({ remainingTime })}</Text>
+                    <Text style={styles.playerName}>
+                      {player.firstName} {player.lastName}
+                      {player.hasBounty ? ' ⭐️' : null}
+                    </Text>
+                    <Text style={styles.playerStats}>
+                      {!player.playing ? 'Not Playing' : 'Playing'}
+                    </Text>
                   </TouchableOpacity>
-                </>
-              )}
-            </CountdownCircleTimer>
-          </View>
-
-          <View style={styles.contentContainer}>
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button} onPress={handlePreviousLevel}>
-                  <Text style={styles.buttonText}>Prev</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.button} onPress={handleStartPause}>
-                  <Text style={[styles.buttonText, isTimerExpired ? styles.resetButtonText : styles.startButtonText]}>
-                    {isTimerPlaying ? 'Pause' : (isTimerExpired ? 'Reset' : 'Start')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.button} onPress={handleNextLevel}>
-                  <Text style={styles.buttonText}>Next</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.levelContainer}>
-                <Text style={styles.levelText}>Level: {currentLevel + 1}</Text>
-              </View>
-
-              <View style={styles.blindContainer}>
-                <View style={styles.blindTextContainer}>
-                  <Text>Small Blind: {levels[currentLevel].smallBlind}</Text>
-                </View>
-                <View style={styles.blindTextContainer}>
-                  <Text>Big Blind: {levels[currentLevel].bigBlind}</Text>
-                </View>
-              </View>
-              <View style={styles.levelContainer}>
-                  <Text style={styles.levelText}>Next Level: </Text>
-                </View>
-
-                <View style={styles.blindContainer}>
-                  <View style={styles.blindTextContainer}>
-                    <Text>Next Small Blind: {levels[currentLevel + 1]?.smallBlind}</Text>
-                  </View>
-                  <View style={styles.blindTextContainer}>
-                    <Text>Next Big Blind: {levels[currentLevel + 1]?.bigBlind}</Text>
-                  </View>
-                </View>
-            </View>
-            <View><Text style={styles.playerListHeader}>Players</Text></View>
-            {playerKilledBy !== null ? (
-              <Text style={styles.claimKillText}>Which player claimed the kill?</Text>)
-              : null}
-            {players.sort((a, b) => (a.playing && !b.playing ? -1 : 1)).map((player, index) => (
-              <TouchableOpacity
-                key={player.id}
-                style={[
-                  styles.playerContainer,
-                  selectedPlayerIndex === index && styles.selectedPlayerContainer,
-                  (!player.playing || player.eliminated) && styles.eliminatedPlayerContainer,
-                ]}
-                onPress={player.eliminated ? null : () => handlePlayerClick(index)}
-              >
-                <Text style={styles.playerName}>
-                  {player.firstName} {player.lastName}
-                  {player.hasBounty ? ' ⭐️' : null}
-                </Text>
-                <Text style={styles.playerStats}>
-                  {player.playing ? `Kills: ${player.kills} | Bounties: ${player.bounties}` : 'DNP'}
-                  {player.eliminated ? ` | Place: ${getOrdinal(player.place)}` : player.place === 1 ? '1' : null}
-                </Text>
-              </TouchableOpacity>
-            ))}
-              <View style={styles.buttonContainer}>
+                ))}
                 <TouchableOpacity
-                  style={[styles.eliminateButton, { marginRight: 10 }]}
-                  onPress={handleEliminateButtonClick}
+                  style={styles.eliminateButton}
+                  onPress={switchToPlayMode}
                 >
-                  <Text style={styles.eliminateButtonText}>Eliminate</Text>
+                  <Text style={styles.eliminateButtonText}>Done</Text>
                 </TouchableOpacity>
-              </View>
+              </>
+            ) : mode === 'play' ? (
+              <>
+                  <View style={styles.timerContainer}>
+                    <CountdownCircleTimer
+                      key={key}
+                      isPlaying={isTimerPlaying}
+                      duration={duration}
+                      colors={['#004777']}
+                      onComplete={handleTimerEnd}
+                      strokeWidth={10}
+                      trailColor="#ECECEC"
+                      strokeLine-cap="butt"
+                      size={200}
+                    >
+                      {({ remainingTime }) => (
+                        <>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setDuration(remainingTime);
+                            }}
+                            style={styles.timerButton}
+                          >
+                            <Text style={styles.countdownText}>{renderTime({ remainingTime })}</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </CountdownCircleTimer>
+                  </View>
 
+                  <View style={styles.contentContainer}>
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.button} onPress={handlePreviousLevel}>
+                          <Text style={styles.buttonText}>Prev</Text>
+                        </TouchableOpacity>
 
-            </ScrollView>
+                        <TouchableOpacity style={styles.button} onPress={handleStartPause}>
+                          <Text style={[styles.buttonText, isTimerExpired ? styles.resetButtonText : styles.startButtonText]}>
+                            {isTimerPlaying ? 'Pause' : (isTimerExpired ? 'Reset' : 'Start')}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.button} onPress={handleNextLevel}>
+                          <Text style={styles.buttonText}>Next</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.levelContainer}>
+                        <Text style={styles.levelText}>Level: {currentLevel + 1}</Text>
+                      </View>
+
+                      <View style={styles.blindContainer}>
+                        <View style={styles.blindTextContainer}>
+                          <Text>Small Blind: {levels[currentLevel].smallBlind}</Text>
+                        </View>
+                        <View style={styles.blindTextContainer}>
+                          <Text>Big Blind: {levels[currentLevel].bigBlind}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.levelContainer}>
+                          <Text style={styles.levelText}>Next Level: </Text>
+                        </View>
+
+                        <View style={styles.blindContainer}>
+                          <View style={styles.blindTextContainer}>
+                            <Text>Next Small Blind: {levels[currentLevel + 1]?.smallBlind}</Text>
+                          </View>
+                          <View style={styles.blindTextContainer}>
+                            <Text>Next Big Blind: {levels[currentLevel + 1]?.bigBlind}</Text>
+                          </View>
+                        </View>
+                    </View>
+                    <View><Text style={styles.playerListHeader}>Players</Text></View>
+                    {playerKilledBy !== null ? (
+                      <Text style={styles.claimKillText}>Which player claimed the kill?</Text>)
+                      : null}
+                    {players.sort((a, b) => (a.playing && !b.playing ? -1 : 1)).map((player, index) => (
+                      <TouchableOpacity
+                        key={player.id}
+                        style={[
+                          styles.playerContainer,
+                          selectedPlayerIndex === index && styles.selectedPlayerContainer,
+                          (!player.playing || player.eliminated) && styles.eliminatedPlayerContainer,
+                        ]}
+                        onPress={player.eliminated ? null : () => handlePlayerClick(index)}
+                      >
+                        <Text style={styles.playerName}>
+                          {player.firstName} {player.lastName}
+                          {player.hasBounty ? ' ⭐️' : null}
+                        </Text>
+                        <Text style={styles.playerStats}>
+                          {player.playing ? `Kills: ${player.kills} | Bounties: ${player.bounties}` : 'DNP'}
+                          {player.eliminated ? ` | Place: ${getOrdinal(player.place)}` : player.place === 1 ? '1' : null}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                          style={[styles.eliminateButton, { marginRight: 10 }]}
+                          onPress={handleEliminateButtonClick}
+                        >
+                          <Text style={styles.eliminateButtonText}>Eliminate</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+          ) : (
+            <>
+                      {/* Render Edit Mode Content */}
+            </>
+          )}
+        </ScrollView>
       </View>
     );
 };
