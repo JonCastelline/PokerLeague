@@ -17,18 +17,11 @@ export default function App() {
     const [players, setPlayers] = useState([
         { id: 1, firstName: "John", lastName: "Doe", kills: 0, place: 0, bounties: 0, points: 5, hasBounty: false, playing: true },
         { id: 2, firstName: "Jane", lastName: "Smith", kills: 0, place: 0, bounties: 0, points: 11, hasBounty: false, playing: true },
-        { id: 3, firstName: "Mike", lastName: "Johnson", kills: 0, place: 0, bounties: 0, points: 3, hasBounty: false, playing: true },
+        { id: 3, firstName: "Mike", lastName: "Johnson", kills: 0, place: 0, bounties: 0, points: 3, hasBounty: true, playing: true },
         { id: 4, firstName: "Sarah", lastName: "Williams", kills: 0, place: 0, bounties: 0, points: 11, hasBounty: false, playing: true },
         { id: 5, firstName: "David", lastName: "Brown", kills: 0, place: 0, bounties: 0, points: 0, hasBounty: false, playing: true },
         { id: 6, firstName: "Emily", lastName: "Jones", kills: 0, place: 0, bounties: 0, points: 6, hasBounty: false, playing: true },
     ]);
-
-    // Calculate the player with the highest points and set hasBounty property
-    const maxPoints = Math.max(...players.map(player => player.points));
-    const playersWithBounties = players.map(player => ({
-      ...player,
-      hasBounty: player.points === maxPoints,
-    }));
 
     const updatePlayers = (updatedPlayers) => {
         setPlayers(updatedPlayers);
@@ -41,7 +34,7 @@ export default function App() {
           <Stack.Screen name="Home" component={HomePage} />
           <Stack.Screen name="Standings" component={StandingsPage} />
           <Stack.Screen name="Play">
-            {props => <PlayPage {...props} players={playersWithBounties} updatePlayers={updatePlayers}/>}
+            {props => <PlayPage {...props} players={players} updatePlayers={updatePlayers}/>}
           </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
