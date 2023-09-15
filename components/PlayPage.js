@@ -60,6 +60,9 @@ const PlayPage = ({ players, updatePlayers }) => {
           activePlayers[0].place = 1;
           activePlayers[0].eliminated = true;
           activePlayers[0].kills += 1;
+          if (eliminatedPlayer.hasBounty) {
+            activePlayers[0].bounties += 1;
+          }
           updatePlayers(updatedPlayers); // Update state with the modified array
           return updatedPlayers; // Return the modified array
         }
@@ -128,47 +131,45 @@ const PlayPage = ({ players, updatePlayers }) => {
               </>
             ) : mode === 'play' ? (
               <>
-                  <View style={styles.timerContainer}>
-                    <Timer
+                <View style={styles.timerContainer}>
+                  <Timer
                     defaultDuration={defaultDuration}
                     levels={levels}
-                    />
-                  </View>
-
-
-                    <View><Text style={styles.playerListHeader}>Players</Text></View>
-                    {playerKilledBy !== null ? (
-                      <Text style={styles.claimKillText}>Which player claimed the kill?</Text>)
-                      : null}
-                    {players.sort((a, b) => (a.playing && !b.playing ? -1 : 1)).map((player, index) => (
-                      <TouchableOpacity
-                        key={player.id}
-                        style={[
-                          styles.playerContainer,
-                          selectedPlayerIndex === index && styles.selectedPlayerContainer,
-                          (!player.playing || player.eliminated) && styles.eliminatedPlayerContainer,
-                        ]}
-                        onPress={player.eliminated ? null : () => handlePlayerClick(index)}
-                      >
-                        <Text style={styles.playerName}>
-                          {player.firstName} {player.lastName}
-                          {player.hasBounty ? ' ⭐️' : null}
-                        </Text>
-                        <Text style={styles.playerStats}>
-                          {player.playing ? `Kills: ${player.kills} | Bounties: ${player.bounties}` : 'DNP'}
-                          {player.eliminated ? ` | Place: ${getOrdinal(player.place)}` : player.place === 1 ? '1' : null}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                      <View style={styles.buttonContainer}>
-                        <TouchableOpacity
-                          style={[styles.eliminateButton, { marginRight: 10 }]}
-                          onPress={handleEliminateButtonClick}
-                        >
-                          <Text style={styles.eliminateButtonText}>Eliminate</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
+                  />
+                </View>
+                <View><Text style={styles.playerListHeader}>Players</Text></View>
+                  {playerKilledBy !== null ? (
+                    <Text style={styles.claimKillText}>Which player claimed the kill?</Text>)
+                    : null}
+                  {players.sort((a, b) => (a.playing && !b.playing ? -1 : 1)).map((player, index) => (
+                    <TouchableOpacity
+                      key={player.id}
+                      style={[
+                        styles.playerContainer,
+                        selectedPlayerIndex === index && styles.selectedPlayerContainer,
+                        (!player.playing || player.eliminated) && styles.eliminatedPlayerContainer,
+                      ]}
+                      onPress={player.eliminated ? null : () => handlePlayerClick(index)}
+                    >
+                    <Text style={styles.playerName}>
+                      {player.firstName} {player.lastName}
+                      {player.hasBounty ? ' ⭐️' : null}
+                    </Text>
+                    <Text style={styles.playerStats}>
+                      {player.playing ? `Kills: ${player.kills} | Bounties: ${player.bounties}` : 'DNP'}
+                      {player.eliminated ? ` | Place: ${getOrdinal(player.place)}` : player.place === 1 ? '1' : null}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={[styles.eliminateButton, { marginRight: 10 }]}
+                    onPress={handleEliminateButtonClick}
+                  >
+                    <Text style={styles.eliminateButtonText}>Eliminate</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
           ) : (
             <>
                       {/* Render Edit Mode Content */}
