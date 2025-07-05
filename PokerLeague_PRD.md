@@ -69,10 +69,28 @@ The following features are defined for the initial V1.0 release.
 | **MON-01**| As a user who wants to run multiple leagues, I want to make a one-time payment to unlock the ability to create unlimited leagues. | - Non-paying users are limited to creating one league. <br> - A payment option is available to upgrade the user's account. <br> - After a successful one-time payment, the user can create any number of leagues. |
 
 ### 4. System & Database Requirements
+The application's backend must support a relational data model to manage the relationships between players, leagues, seasons, and games. The following key data entities and their essential attributes are required to support the features outlined in this document.
 
-* The system must support the database schema `poker_league_schema.sql` with the agreed-upon modifications.
-* A new table, `league_membership`, will be created to manage user roles on a per-league basis, replacing the admin flags on the `player_account` table.
-* The `league_settings` table must include a field to handle the bounty logic when a points leader is absent (Options: "No Bounty" or "Next Highest Player").
+* **Player Account:** A global entity for a user.
+  * **Attributes:** Unique ID, Name, Email, Authentication credentials.
+   
+* **League:** The top-level container for a poker group.
+  * **Attributes:** Unique ID, League Name.
+    
+* **Season:** Represents a single season of play within a League. All games and standings are tied to a season.
+  * **Attributes:** Unique ID, Season Name, Start Date, End Date.
+    
+* **Player** (League Membership): Represents a user's membership and role within a specific league. This is the critical link between a Player Account and a League.
+  * **Attributes:** Unique ID, Associated Player Account, Associated League, a league-specific Player Name (nickname), and a Role (e.g., 'Admin', 'Player').
+    
+* **Game:** An individual game event within a Season.
+  * **Attributes:** Unique ID, Game Name/Number, Date, Associated Season.
+    
+* **Game Result:** Records the outcome for a single player in a single game.
+  * **Attributes:** Unique ID, Associated Game, Associated Player, Finishing Place, Number of Kills, Number of Bounties.
+    
+* **League Settings:** A set of rules tied to a specific Season.
+  * **Attributes:** Unique ID, Associated Season, Blind Timer Duration, Points values for places, Points values for kills, Points values for bounties, and a rule for handling a bounty when the league leader is absent (Options: "No Bounty" or "Bounty passes to the next highest-ranked player in attendance").
 
 ### 5. Post-MVP / Future Enhancements
 
